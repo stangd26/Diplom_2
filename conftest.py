@@ -52,6 +52,38 @@ def user(session):
             headers=bearer_headers(test_user["access_token"]),
         )
 
+# Удаляет созданного в тесте пользователя после выполнения теста
+@pytest.fixture
+def user_cleanup(session):
+    
+    access_token = None
+
+    def register_user():
+        payload = unique_user_payload()
+
+        response = session.post(
+            REGISTER_ENDPOINT,
+            json=payload
+        )
+
+        assert response.status_code == 200, response.text
+
+        body = response.json()
+        nonlocal access_token
+        access_token = body["accessToken"]
+
+        return payload, body
+
+    yield register_user
+
+    if access_token:
+        with allure.step("Удалить тестового пользователя"):
+            session.delete(
+                DELETE_USER_ENDPOINT,
+                headers=bearer_headers(access_token),
+            )
+
+
 # Возвращает ID ингредиентов, пригодные для создания заказа
 @pytest.fixture
 def valid_ingredient_ids(ingredients):
