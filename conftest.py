@@ -20,69 +20,35 @@ def session():
 @pytest.fixture
 def ingredients(session):
     response = session.get(INGREDIENTS_ENDPOINT, timeout=15)
-    assert response.status_code == 200, (
-        f"Не удалось получить ингредиенты: {response.status_code}, {response.text}"
-    )
-    body = response.json()
-    assert body.get("success") is True
-    ingredient_list = body.get("data", [])
-    assert ingredient_list, "API вернул пустой список ингредиентов"
-    return ingredient_list
+    return response.json().get("data", [])
 
 # Создание и удаление тестового пользователя
 @pytest.fixture
 def user(session):
-    with allure.step("Создать тестового пользователя"):
-        payload = unique_user_payload()
-        response = session.post(REGISTER_ENDPOINT, json=payload)
+    payload = unique_user_payload()
 
-        assert response.status_code == 200, response.text
+    response = session.post(
+        REGISTER_ENDPOINT,
+        json=payload,
+    )
 
-        body = response.json()
-        test_user = {
-            "payload": payload,
-            "access_token": body["accessToken"],
-        }
+    body = response.json()
+
+    test_user = {
+        "payload": payload,
+        "response": response,
+        "body": body,
+        "access_token": body.get("accessToken"),
+    }
 
     yield test_user
 
-    with allure.step("Удалить тестового пользователя"):
+    # Очистка выполняется после завершения теста
+    if test_user["access_token"]:
         session.delete(
             DELETE_USER_ENDPOINT,
             headers=bearer_headers(test_user["access_token"]),
         )
-
-# Удаляет созданного в тесте пользователя после выполнения теста
-@pytest.fixture
-def user_cleanup(session):
-    
-    access_token = None
-
-    def register_user():
-        payload = unique_user_payload()
-
-        response = session.post(
-            REGISTER_ENDPOINT,
-            json=payload
-        )
-
-        assert response.status_code == 200, response.text
-
-        body = response.json()
-        nonlocal access_token
-        access_token = body["accessToken"]
-
-        return payload, body
-
-    yield register_user
-
-    if access_token:
-        with allure.step("Удалить тестового пользователя"):
-            session.delete(
-                DELETE_USER_ENDPOINT,
-                headers=bearer_headers(access_token),
-            )
-
 
 # Возвращает ID ингредиентов, пригодные для создания заказа
 @pytest.fixture

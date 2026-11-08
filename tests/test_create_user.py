@@ -1,9 +1,7 @@
 import allure
-import requests
 
 from data import (
     REGISTER_ENDPOINT,
-    DELETE_USER_ENDPOINT,
     unique_user_payload,
 )
 
@@ -16,36 +14,16 @@ class TestCreateUser:
         "Проверяем регистрацию нового пользователя и получение токенов."
     )
     @allure.severity(allure.severity_level.CRITICAL)
-    # def test_create_unique_user_successfully(self, session):
-    #     payload = unique_user_payload()
-
-    #     with allure.step("Отправить запрос на регистрацию"):
-    #         response = session.post(REGISTER_ENDPOINT, json=payload)
-
-    #     with allure.step("Проверить успешный ответ"):
-    #         assert response.status_code == 200
-
-    #         body = response.json()
-    #         assert body["success"] is True
-    #         assert body["accessToken"]
-    #         assert body["refreshToken"]
-    #         assert body["user"]["email"] == payload["email"]
-
-    #     with allure.step("Удалить созданного пользователя"):
-    #         session.delete(
-    #             DELETE_USER_ENDPOINT,
-    #             headers={
-    #                 "Authorization": body["accessToken"]
-    #             },
-    #         )
-    def test_create_unique_user_successfully(self, user_cleanup):
-        payload, body = user_cleanup()
-
+    def test_create_unique_user_successfully(self, session, user):
         with allure.step("Проверить успешную регистрацию"):
+            response = user["response"]
+            body = user["body"]
+
+            assert response.status_code == 200
             assert body["success"] is True
             assert body["accessToken"]
             assert body["refreshToken"]
-            assert body["user"]["email"] == payload["email"]
+            assert body["user"]["email"] == user["payload"]["email"]
 
     @allure.title("Повторная регистрация существующего пользователя")
     @allure.severity(allure.severity_level.NORMAL)
